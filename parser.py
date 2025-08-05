@@ -5,10 +5,6 @@ import time
 import requests
 
 
-Artist = namedtuple('Artist', ['avatar', 'username', 'description'])
-Album = namedtuple('Album', ['name', 'publication_date'])
-
-
 GENRES_DIR = 'genres'
 ARTIST_IMAGES = 'artist_images'
 
@@ -34,7 +30,8 @@ class MusicParser:
 
     def __get_genre_artists_url(self, genre: str) -> str:
         """
-        Функция, которая возвращает URL-адрес со списком исполнителей, поющих в данном жанре
+        Функция, которая возвращает URL-адрес
+        со списком исполнителей, поющих в данном жанре
         """
         return f'https://www.last.fm/ru/tag/{genre}/artists'
 
@@ -46,19 +43,22 @@ class MusicParser:
 
     def __get_paginated_artists_url(self, genre: str, page: int) -> str:
         """
-        Функция, которая возвращает URL-адрес со списком исполнителей по номеру страницы
+        Функция, которая возвращает URL-адрес
+        со списком исполнителей по номеру страницы
         """
         return f'https://www.last.fm/ru/tag/{genre}/artists?page={page}'
 
     def __get_artist_images_url(self, artist: str):
         """
-        Функция, которая возвращает URL-адрес со списком изображений исполнителя
+        Функция, которая возвращает URL-адрес
+        со списком изображений исполнителя
         """
         return f'https://www.last.fm/ru/music/{artist}/+images'
 
     def get_max_pages(self, genre: str) -> int:
         """
-        Функция, которая возвращает номер последней страницы исполнителей определенного жанра
+        Функция, которая возвращает номер
+        последней страницы исполнителей определенного жанра
         """
         url = self.__get_genre_artists_url(genre)
         response = requests.get(url)
