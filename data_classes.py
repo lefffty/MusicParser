@@ -2,7 +2,13 @@ from typing import NamedTuple
 import datetime
 
 
+DATE_FORMAT = '%Y-%m-%d'
+
+
 class Artist(NamedTuple):
+    """
+    Класс сущности <<Исполнитель>>
+    """
     username: str
     avatar: str
     description: str
@@ -16,6 +22,9 @@ class Artist(NamedTuple):
 
 
 class Album(NamedTuple):
+    """
+    Класс сущности <<Альбом>>
+    """
     name: str
     publication_date: datetime.date
 
@@ -27,6 +36,9 @@ class Album(NamedTuple):
 
 
 class Song(NamedTuple):
+    """
+    Класс сущности <<Песня>>
+    """
     name: str
     duration: datetime.time
 
@@ -38,6 +50,9 @@ class Song(NamedTuple):
 
 
 class Genre(NamedTuple):
+    """
+    Класс сущности <<Жанр>>
+    """
     name: str
     description: str
 
