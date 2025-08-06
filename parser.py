@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
-from collections import namedtuple
+from data_classes import Song
+from datetime import time
 import os
-import time
+import json
 import requests
 
 
@@ -19,14 +20,37 @@ def ensure_directories_exists():
 
 class MusicParser:
     def __init__(self):
-        self.MAX_PAGES = ('li', 'pagination-page')
+        self.MAX_PAGES = (
+            'li',
+            'pagination-page'
+        )
         self.PARAGRAPH = ('p')
-        self.ARTISTS = ('h3', 'big-artist-list-title')
-        self.PAGE_LIMIT = 3
-        self.GENRES = [
+        self.ARTISTS = (
+            'h3',
+            'big-artist-list-title'
+        )
+        self.ARTISTS_PAGE_LIMIT = 2
+        self.ARTIST_ALBUMS_PAGE_LIMIT = 2
+        self.GENRES = (
             'rock', 'hip-hop', 'jazz',
             'british', 'punk', '80s',
-        ]
+        )
+        self.ALBUM_CLASS = (
+            'h3',
+            'resource-list--release-list-item-name'
+        )
+        self.TRACK_CLASS = (
+            'td',
+            'chartlist-name'
+        )
+        self.TRACK_DURATION_CLASS = (
+            'td',
+            'chartlist-duration'
+        )
+        self.artists = []
+        self.songs = []
+        self.albums = []
+        self.genres = []
 
     def __get_genre_artists_url(self, genre: str) -> str:
         """
@@ -54,6 +78,32 @@ class MusicParser:
         со списком изображений исполнителя
         """
         return f'https://www.last.fm/ru/music/{artist}/+images'
+
+    def __get_artist_albums_url(self, artist: str):
+        """
+        Возвращает URL-адрес со списком альбомов выбранного исполнителя
+        """
+        return f'https://www.last.fm/ru/music/{artist}/+albums?order=most_popular'
+
+    def __get_album_url(self, artist: str, album_title: str):
+        """
+        Возвращает URL-адрес альбома
+        """
+        return f'https://www.last.fm/ru/music/{artist}/{album_title}'
+
+    def parse_duration_to_time(self, raw_time: str):
+        """
+        Преобразует строку формата "%H:%M:%S" в объект time
+        """
+        parts = [int(part) for part in raw_time.split(':')]
+        num_of_parts = len(parts)
+        match num_of_parts:
+            case 1:
+                return time(0, 0, parts[0])
+            case 2:
+                return time(0, *parts)
+            case 3:
+                return time(*parts)
 
     def get_max_pages(self, genre: str) -> int:
         """
@@ -92,30 +142,67 @@ class MusicParser:
         artists_on_page = [item.contents[0].text for item in items]
         return artists_on_page
 
+    def get_artist_albums(self, artist: str):
+        """
+        Возвращает список альбомов исполнителя
+        """
+        url = self.__get_artist_albums_url(artist)
+        response = requests.get(url)
+        if response.status_code != 200:
+            return -1
+        soup = BeautifulSoup(response.text, 'html.parser')
+        album_items = soup.find_all(
+            self.ALBUM_CLASS[0], self.ALBUM_CLASS[1])[4:]
+        album_names = [item.contents[1].text for item in album_items]
+        return album_names
+
+    def get_album_songs(self, artist: str, title: str):
+        """
+        Возвращает список объектов Song альбома
+        """
+        url = self.__get_album_url(artist, title)
+        response = requests.get(url)
+        if response.status_code != 200:
+            return -1
+        soup = BeautifulSoup(response.text, 'html.parser')
+        raw_tracks = soup.find_all(self.TRACK_CLASS[0], self.TRACK_CLASS[1])
+        raw_durations = soup.find_all(
+            self.TRACK_DURATION_CLASS[0], self.TRACK_DURATION_CLASS[1])
+        tracks = [track.contents[1].text for track in raw_tracks]
+        durations = [duration.text.strip() for duration in raw_durations]
+        return [Song(name, self.parse_duration_to_time(duration)) for name, duration in zip(tracks, durations)]
+
     def write_parsed_data(self):
         """
-        Записать в файл собранные данные
+        Записывает в файл собранные данные
         """
         max_genre_pages = [self.get_max_pages(genre) for genre in self.GENRES]
 
         for genre, max_pages in zip(self.GENRES, max_genre_pages):
             artists = []
-            for page in range(1, min(self.PAGE_LIMIT, max_pages)):
+
+            for page in range(1, min(self.ARTISTS_PAGE_LIMIT, max_pages)):
                 artists_on_page = self.get_paginated_artists_by_genre(
                     genre, page)
 
-                for page_artist in artists_on_page:
-                    self.get_artist_description(page_artist)
+                for artist in artists_on_page:
+                    description = self.get_artist_description(artist)
+                    albums = self.get_artist_albums(artist)
+
+                    print(
+                        f'{artist}\n\t\tdescription: {description[:20] if isinstance(description, str) else description}\n\t\talbums: {albums}')
 
                 artists.extend(artists_on_page)
 
             full_path = os.path.join(GENRES_DIR, f'{genre}_artists.txt')
             with open(full_path, 'w', encoding='utf-8') as file:
                 file.write('\n'.join(artists))
+                print(
+                    f'Записаны артисты в жанре {genre}, количество - {len(artists)}')
 
     def load_parsed_artists_data(self):
         """
-        Считать собранные данные из файла
+        Читает собранные данные из файла
         """
         all_artists = []
         image_urls = []
@@ -136,7 +223,7 @@ class MusicParser:
         """
         Функция, которая сохраняет в папке изображения исполнителей
         """
-        artists, urls = self.read_parsed_data()
+        artists, urls = self.load_parsed_artists_data()
         for artist, url in zip(artists, urls):
             save_path = os.path.join('genre_images', f'{artist}.png')
             response = requests.get(url, stream=True)
@@ -152,10 +239,10 @@ def main():
     """
     Главная функция
     """
-    # ensure_directories_exists()
-    # parser = MusicParser()
-    # description = parser.get_artist_description('Led Zeppelin')
-    # print(description)
+    parser = MusicParser()
+    songs = parser.get_album_songs('Led Zeppelin', 'Led Zeppelin IV')
+    with open('jsons/Led Zeppelin IV_songs.json', 'w') as file:
+        json.dump([song.to_dict() for song in songs], file, indent=2)
 
 
 if __name__ == '__main__':
