@@ -27,11 +27,13 @@ class Album(NamedTuple):
     """
     name: str
     publication_date: datetime.date
+    cover_path: str
 
     def to_dict(self):
         return {
             'name': self.name,
-            'publication_date': self.publication_date
+            'publication_date': self.publication_date.isoformat(),
+            'cover': self.cover_path
         }
 
 
@@ -45,7 +47,7 @@ class Song(NamedTuple):
     def to_dict(self):
         return {
             'name': self.name,
-            'duration': self.duration
+            'duration': self.duration.isoformat()
         }
 
 
@@ -61,3 +63,11 @@ class Genre(NamedTuple):
             'name': self.name,
             'description': self.description
         }
+
+
+if __name__ == '__main__':
+    song = Song(
+        name='blabla',
+        duration=datetime.time(0, 1, 1)
+    )
+    print(song)
