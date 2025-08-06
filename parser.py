@@ -54,48 +54,91 @@ class MusicParser:
 
     def __get_genre_artists_url(self, genre: str) -> str:
         """
-        Функция, которая возвращает URL-адрес
-        со списком исполнителей, поющих в данном жанре
+        Возвращает URL-адрес со списком исполнителей, поющих в данном жанре
+
+        Args:
+            genre (str): название жанра
+
+        Returns:
+            str: URL-адрес
         """
         return f'https://www.last.fm/ru/tag/{genre}/artists'
 
     def __get_artist_description_url(self, artist: str) -> str:
         """
-        Функция, которая возвращает URL-адрес с описанием исполнителя
+        Возвращает URL-адрес с описанием исполнителя
+
+        Args:
+            artist (str): никнейм исполнителя
+
+        Returns:
+            str: URL-адрес
         """
         return f'https://genius.com/artists/{artist}'
 
     def __get_paginated_artists_url(self, genre: str, page: int) -> str:
         """
-        Функция, которая возвращает URL-адрес
+        Возвращает URL-адрес
         со списком исполнителей по номеру страницы
+
+        Args:
+            genre (str): название жанра
+            page (str): номер страницы
+
+        Returns:
+            str: URL-адрес
         """
         return f'https://www.last.fm/ru/tag/{genre}/artists?page={page}'
 
     def __get_artist_images_url(self, artist: str):
         """
-        Функция, которая возвращает URL-адрес
+        Возвращает URL-адрес
         со списком изображений исполнителя
+
+        Args:
+            artist (str): никнейм исполнителя
+
+        Returns:
+            str: URL-адрес
         """
         return f'https://www.last.fm/ru/music/{artist}/+images'
 
     def __get_artist_albums_url(self, artist: str):
         """
         Возвращает URL-адрес со списком альбомов выбранного исполнителя
+
+        Args:
+            artist (str): никнейм исполнителя
+
+        Returns:
+            str: URL-адрес
         """
         return f'https://www.last.fm/ru/music/{artist}/+albums?order=most_popular'
 
     def __get_album_url(self, artist: str, album_title: str):
         """
         Возвращает URL-адрес альбома
+
+        Args:
+            artist (str): никнейм исполнителя
+            album_title (str): название альбома
+
+        Returns:
+            str: URL-адрес
         """
         return f'https://www.last.fm/ru/music/{artist}/{album_title}'
 
-    def parse_duration_to_time(self, raw_time: str):
+    def __parse_duration_to_time(self, raw_duration: str):
         """
         Преобразует строку формата "%H:%M:%S" в объект time
+
+        Args:
+            raw_time (str): продолжительность песни, в формате "%H:%M:%S"
+
+        Returns:
+            time: продолжительность песни
         """
-        parts = [int(part) for part in raw_time.split(':')]
+        parts = [int(part) for part in raw_duration.split(':')]
         num_of_parts = len(parts)
         match num_of_parts:
             case 1:
@@ -107,8 +150,13 @@ class MusicParser:
 
     def get_max_pages(self, genre: str) -> int:
         """
-        Функция, которая возвращает номер
-        последней страницы исполнителей определенного жанра
+        Возвращает номер последней страницы исполнителей определенного жанра
+
+        Args:
+            genre (str): название жанра
+
+        Returns:
+            str: URL-адрес
         """
         url = self.__get_genre_artists_url(genre)
         response = requests.get(url)
@@ -119,7 +167,13 @@ class MusicParser:
 
     def get_artist_description(self, artist: str):
         """
-        Функция, которая возвращает описание исполнителя
+        Возвращает описание исполнителя
+
+        Args:
+            artist (str): никнейм исполнителя
+
+        Returns:
+            str: URL-адрес
         """
         url = self.__get_artist_description_url(artist)
         response = requests.get(url)
@@ -132,8 +186,15 @@ class MusicParser:
 
     def get_paginated_artists_by_genre(self, genre: str, page: int):
         """
-        Функция, которая возвращает список исполнителей определенного жанра по
+        Возвращает список исполнителей определенного жанра по
         номеру страницы
+
+        Args:
+            genre (str): название жанра
+            page (int): номер страницы
+
+        Returns:
+            list[str]: список исполнителей
         """
         url = self.__get_paginated_artists_url(genre, page)
         response = requests.get(url)
@@ -145,6 +206,12 @@ class MusicParser:
     def get_artist_albums(self, artist: str):
         """
         Возвращает список альбомов исполнителя
+
+        Args:
+            artist (str): никнейм исполнителя
+
+        Returns:
+            list[str]: список названий альбомов
         """
         url = self.__get_artist_albums_url(artist)
         response = requests.get(url)
@@ -159,6 +226,13 @@ class MusicParser:
     def get_album_songs(self, artist: str, title: str):
         """
         Возвращает список объектов Song альбома
+
+        Args:
+            artist (str): никнейм исполнителя
+            title (str): название альбома
+
+        Returns:
+            list[Song]: список песен альбома
         """
         url = self.__get_album_url(artist, title)
         response = requests.get(url)
@@ -170,11 +244,14 @@ class MusicParser:
             self.TRACK_DURATION_CLASS[0], self.TRACK_DURATION_CLASS[1])
         tracks = [track.contents[1].text for track in raw_tracks]
         durations = [duration.text.strip() for duration in raw_durations]
-        return [Song(name, self.parse_duration_to_time(duration)) for name, duration in zip(tracks, durations)]
+        return [Song(name, self.__parse_duration_to_time(duration)) for name, duration in zip(tracks, durations)]
 
     def write_parsed_data(self):
         """
         Записывает в файл собранные данные
+
+        Returns:
+            None
         """
         max_genre_pages = [self.get_max_pages(genre) for genre in self.GENRES]
 
@@ -202,7 +279,11 @@ class MusicParser:
 
     def load_parsed_artists_data(self):
         """
-        Читает собранные данные из файла
+        Читает и возвращает собранные данные из файла
+
+        Returns:
+            list[str]: список прочитанных исполнителей
+            list[str]: список ссылок на изображение исполнителя
         """
         all_artists = []
         image_urls = []
@@ -222,6 +303,9 @@ class MusicParser:
     def download_and_save_artist_images(self):
         """
         Функция, которая сохраняет в папке изображения исполнителей
+
+        Returns:
+            None
         """
         artists, urls = self.load_parsed_artists_data()
         for artist, url in zip(artists, urls):
@@ -232,7 +316,6 @@ class MusicParser:
                     file.write(response.content)
             else:
                 print('Error while parsing:', response.status_code)
-            time.sleep(2)
 
 
 def main():
