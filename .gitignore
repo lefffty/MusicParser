@@ -208,6 +208,7 @@ __marimo__/
 
 genres/
 artist_images/
+albums_covers/
 
 artist_description.py
 download_img.py

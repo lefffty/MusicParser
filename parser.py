@@ -1,9 +1,15 @@
 from bs4 import BeautifulSoup
 from data_classes import Song
 from datetime import time
+from typing import Union
 import os
-import json
 import requests
+
+from config import (
+    SELECTORS,
+    LIMITS,
+    ENUMS
+)
 
 
 GENRES_DIR = 'genres'
@@ -19,39 +25,6 @@ def ensure_directories_exists():
 
 
 class MusicParser:
-    def __init__(self):
-        self.MAX_PAGES = (
-            'li',
-            'pagination-page'
-        )
-        self.PARAGRAPH = ('p')
-        self.ARTISTS = (
-            'h3',
-            'big-artist-list-title'
-        )
-        self.ARTISTS_PAGE_LIMIT = 2
-        self.ARTIST_ALBUMS_PAGE_LIMIT = 2
-        self.GENRES = (
-            'rock', 'hip-hop', 'jazz',
-            'british', 'punk', '80s',
-        )
-        self.ALBUM_CLASS = (
-            'h3',
-            'resource-list--release-list-item-name'
-        )
-        self.TRACK_CLASS = (
-            'td',
-            'chartlist-name'
-        )
-        self.TRACK_DURATION_CLASS = (
-            'td',
-            'chartlist-duration'
-        )
-        self.artists = []
-        self.songs = []
-        self.albums = []
-        self.genres = []
-
     def __get_genre_artists_url(self, genre: str) -> str:
         """
         Возвращает URL-адрес со списком исполнителей, поющих в данном жанре
@@ -128,7 +101,7 @@ class MusicParser:
         """
         return f'https://www.last.fm/ru/music/{artist}/{album_title}'
 
-    def __parse_duration_to_time(self, raw_duration: str):
+    def __parse_duration_to_time(self, raw_duration: str) -> time:
         """
         Преобразует строку формата "%H:%M:%S" в объект time
 
@@ -142,11 +115,12 @@ class MusicParser:
         num_of_parts = len(parts)
         match num_of_parts:
             case 1:
-                return time(0, 0, parts[0])
+                _duration = time(0, 0, parts[0])
             case 2:
-                return time(0, *parts)
+                _duration = time(0, *parts)
             case 3:
-                return time(*parts)
+                _duration = time(*parts)
+        return _duration
 
     def get_max_pages(self, genre: str) -> int:
         """
@@ -161,11 +135,14 @@ class MusicParser:
         url = self.__get_genre_artists_url(genre)
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
-        all_list_items = soup.find_all(self.MAX_PAGES[0], self.MAX_PAGES[1])
+        all_list_items = soup.find_all(
+            SELECTORS['MAX_PAGES'][0],
+            SELECTORS['MAX_PAGES'][1]
+        )
         max_pages = [item.contents[1] for item in all_list_items][-1]
         return int(max_pages.text)
 
-    def get_artist_description(self, artist: str):
+    def get_artist_description(self, artist: str) -> Union[int, str]:
         """
         Возвращает описание исполнителя
 
@@ -184,7 +161,7 @@ class MusicParser:
         texts = [paragraph.text for paragraph in paragraphs]
         return ' '.join(texts)
 
-    def get_paginated_artists_by_genre(self, genre: str, page: int):
+    def get_paginated_artists_by_genre(self, genre: str, page: int) -> list[str]:
         """
         Возвращает список исполнителей определенного жанра по
         номеру страницы
@@ -199,11 +176,14 @@ class MusicParser:
         url = self.__get_paginated_artists_url(genre, page)
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
-        items = soup.find_all(self.ARTISTS[0], self.ARTISTS[1])
+        items = soup.find_all(
+            SELECTORS['ARTISTS'][0],
+            SELECTORS['ARTISTS'][1]
+        )
         artists_on_page = [item.contents[0].text for item in items]
         return artists_on_page
 
-    def get_artist_albums(self, artist: str):
+    def get_artist_albums(self, artist: str) -> Union[list[str], int]:
         """
         Возвращает список альбомов исполнителя
 
@@ -219,11 +199,13 @@ class MusicParser:
             return -1
         soup = BeautifulSoup(response.text, 'html.parser')
         album_items = soup.find_all(
-            self.ALBUM_CLASS[0], self.ALBUM_CLASS[1])[4:]
+            SELECTORS['ALBUM_CLASS'][0],
+            SELECTORS['ALBUM_CLASS'][1]
+        )[4:]
         album_names = [item.contents[1].text for item in album_items]
         return album_names
 
-    def get_album_songs(self, artist: str, title: str):
+    def get_album_songs(self, artist: str, title: str) -> Union[list[Song], int]:
         """
         Возвращает список объектов Song альбома
 
@@ -239,35 +221,38 @@ class MusicParser:
         if response.status_code != 200:
             return -1
         soup = BeautifulSoup(response.text, 'html.parser')
-        raw_tracks = soup.find_all(self.TRACK_CLASS[0], self.TRACK_CLASS[1])
+        raw_tracks = soup.find_all(
+            SELECTORS['TRACK_CLASS'][0],
+            SELECTORS['ARTISTS'][1]
+        )
         raw_durations = soup.find_all(
-            self.TRACK_DURATION_CLASS[0], self.TRACK_DURATION_CLASS[1])
+            SELECTORS['TRACK_DURATION_CLASS'][0],
+            SELECTORS['TRACK_DURATION_CLASS'][1]
+        )
         tracks = [track.contents[1].text for track in raw_tracks]
         durations = [duration.text.strip() for duration in raw_durations]
-        return [Song(name, self.__parse_duration_to_time(duration)) for name, duration in zip(tracks, durations)]
+        return [Song(name, self.__parse_duration_to_time(duration))
+                for name, duration in zip(tracks, durations)]
 
-    def write_parsed_data(self):
+    def write_parsed_data(self) -> None:
         """
         Записывает в файл собранные данные
 
         Returns:
             None
         """
-        max_genre_pages = [self.get_max_pages(genre) for genre in self.GENRES]
+        max_genre_pages = [self.get_max_pages(
+            genre) for genre in ENUMS['GENRES']]
 
-        for genre, max_pages in zip(self.GENRES, max_genre_pages):
+        for genre, max_pages in zip(ENUMS['GENRES'], max_genre_pages):
             artists = []
 
-            for page in range(1, min(self.ARTISTS_PAGE_LIMIT, max_pages)):
+            for page in range(1, min(LIMITS['ARTISTS_PAGE_LIMIT'], max_pages)):
                 artists_on_page = self.get_paginated_artists_by_genre(
                     genre, page)
 
                 for artist in artists_on_page:
-                    description = self.get_artist_description(artist)
-                    albums = self.get_artist_albums(artist)
-
-                    print(
-                        f'{artist}\n\t\tdescription: {description[:20] if isinstance(description, str) else description}\n\t\talbums: {albums}')
+                    self.get_artist_description(artist)
 
                 artists.extend(artists_on_page)
 
@@ -277,7 +262,7 @@ class MusicParser:
                 print(
                     f'Записаны артисты в жанре {genre}, количество - {len(artists)}')
 
-    def load_parsed_artists_data(self):
+    def load_parsed_artists_data(self) -> tuple[list[list[str]], list[str]]:
         """
         Читает и возвращает собранные данные из файла
 
@@ -287,7 +272,7 @@ class MusicParser:
         """
         all_artists = []
         image_urls = []
-        for genre in self.GENRES:
+        for genre in ENUMS['GENRES']:
             genre_artists = [line.strip() for line in open(
                 f'genres/{genre}_artists.txt', 'r').readlines()]
             for artist in genre_artists:
@@ -300,7 +285,7 @@ class MusicParser:
             image_urls.append(url)
         return all_artists, image_urls
 
-    def download_and_save_artist_images(self):
+    def download_and_save_artist_images(self) -> None:
         """
         Функция, которая сохраняет в папке изображения исполнителей
 
@@ -323,9 +308,8 @@ def main():
     Главная функция
     """
     parser = MusicParser()
-    songs = parser.get_album_songs('Led Zeppelin', 'Led Zeppelin IV')
-    with open('jsons/Led Zeppelin IV_songs.json', 'w') as file:
-        json.dump([song.to_dict() for song in songs], file, indent=2)
+    titles = parser.get_artist_albums('Led Zeppelin')
+    print(titles)
 
 
 if __name__ == '__main__':
