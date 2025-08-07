@@ -3,6 +3,8 @@ from psycopg2 import connect
 from psycopg2 import (
     OperationalError,
 )
+import json
+import time
 import os
 
 
@@ -61,14 +63,38 @@ class DatabaseManager:
             songs = cursor.fetchall()
         return songs
 
+    def insert_artist(self, username: str, description: str, avatar: str):
+        media_folder = os.getenv('RELATIVE_MEDIA_FOLDER')
+        avatar = os.path.join(media_folder, avatar)
+        if description != 'No description needed.':
+            description = description[:description.find('.') + 1]
+        artist_query = '''
+            INSERT INTO public.artist_artist(username, description, avatar)
+	        VALUES (%s, %s, %s);
+        '''
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                artist_query, (username, description, avatar))
+            self.connection.commit()
+        print(
+            f'"Artist" with params ({username},{description},{avatar})')
+        time.sleep(0.75)
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.connection.close()
         print('Подключение разорвано!')
 
 
-print('Входим в контекстный менеджер!')
-with DatabaseManager() as dr:
-    artists = dr.get_artists()
-    artist_names = [username for _, username, *_ in artists]
-    print(artist_names)
-print('Вышли из контекстного менеджера!')
+def main():
+    genre = '80s'
+    print('Входим в контекстный менеджер!')
+    with DatabaseManager() as dr:
+        with open(f'jsons/artists/{genre}.json', 'r', encoding='utf-8') as file:
+            data: list[dict] = json.load(file)
+        for item in data:
+            dr.insert_artist(*item.values())
+    print('Вышли из контекстного менеджера!')
+
+
+if __name__ == '__main__':
+    main()
