@@ -214,3 +214,4 @@ artist_description.py
 download_img.py
 get_artist_albums.py
 jsons/
+temp/
