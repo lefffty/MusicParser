@@ -9,6 +9,8 @@ import requests
 from config import (
     SELECTORS,
     HEADERS,
+    GENRES_DIR,
+    ARTIST_IMAGES,
 )
 from exceptions import (
     GenreError,
@@ -24,10 +26,6 @@ from data_classes import (
 
 
 load_dotenv()
-
-
-GENRES_DIR = 'genres'
-ARTIST_IMAGES = 'artist_images'
 
 
 def ensure_directories_exists():
@@ -77,7 +75,7 @@ class MusicParser:
         """
         return f'https://www.last.fm/ru/tag/{genre}/artists?page={page}'
 
-    def get_artist_images_url(self, artist: str):
+    def get_artist_images_url(self, artist: str) -> str:
         """
         Возвращает URL-адрес
         со списком изображений исполнителя
@@ -90,7 +88,7 @@ class MusicParser:
         """
         return f'https://www.last.fm/ru/music/{artist}/+images'
 
-    def get_artist_albums_url(self, artist: str, page: int = 1):
+    def get_artist_albums_url(self, artist: str, page: int = 1) -> str:
         """
         Возвращает URL-адрес со списком альбомов выбранного исполнителя
 
@@ -102,7 +100,7 @@ class MusicParser:
         """
         return f'https://www.last.fm/ru/music/{artist}/+albums?order=most_popular&page={page}'
 
-    def get_album_url(self, artist: str, album_title: str):
+    def get_album_url(self, artist: str, album_title: str) -> str:
         """
         Возвращает URL-адрес альбома
 
@@ -156,7 +154,7 @@ class MusicParser:
         max_pages = [item.contents[1] for item in all_list_items][-1]
         return int(max_pages.text)
 
-    def get_all_genres(self):
+    def get_all_genres(self) -> list[str]:
         """
         Возвращает все жанры, присутствующие на сайте
 
@@ -228,7 +226,7 @@ class MusicParser:
         soup = BeautifulSoup(response.text, 'html.parser')
         raw_tracks = soup.find_all(
             SELECTORS['TRACK_CLASS'][0],
-            SELECTORS['ARTISTS'][1]
+            SELECTORS['TRACK_CLASS'][1]
         )
         raw_durations = soup.find_all(
             SELECTORS['TRACK_DURATION_CLASS'][0],
@@ -259,7 +257,7 @@ class MusicParser:
         album_names = [item.contents[1].text for item in album_items]
         return album_names
 
-    def get_artist_image_url(self, artist: str):
+    def get_artist_image_url(self, artist: str) -> str:
         """
         Возвращает URL-адрес изображения исполнителя
 
@@ -322,7 +320,7 @@ class MusicParser:
         current_files = os.listdir(urls_folder)
         return target_file in current_files
 
-    def write_artists(self, artists: list[str], genre_path: str, genre: str):
+    def write_artists(self, artists: list[str], genre_path: str, genre: str) -> None:
         """
         Записывает данные об артистах в JSON-файл
 
@@ -395,7 +393,7 @@ class MusicParser:
             self.write_artists(artists, genre_path, genre)
             self.save_images(genre, page)
 
-    def save_images(self, genre: str, page: int):
+    def save_images(self, genre: str, page: int) -> None:
         """
         Сохраняет собранные изображения исполнителей
 
@@ -459,7 +457,7 @@ class MusicParser:
         """
         return f'https://www.last.fm/ru/music/{artist}/{title}/+images'
 
-    def get_album_cover_url(self, artist: str, title: str):
+    def get_album_cover_url(self, artist: str, title: str) -> str:
         """
         Возвращает ссылку на обложку выбранного альбома
         исполнителя
@@ -506,7 +504,7 @@ class MusicParser:
         )[-1]
         return int(item.text.strip())
 
-    def get_publication_date(self, artist: str, album_title: str):
+    def get_publication_date(self, artist: str, album_title: str) -> date:
         """
         Возвращает дату публикации альбома
 
@@ -519,8 +517,6 @@ class MusicParser:
         """
         url = self.get_album_url(artist, album_title)
         response = requests.get(url)
-        if response.status_code != 200:
-            return -1
         soup = BeautifulSoup(response.text, 'html.parser')
         raw_publication_date = soup.find_all(
             SELECTORS['ALBUM_PUBLICATION_DATE_CLASS'][0],
@@ -563,15 +559,14 @@ class MusicParser:
             case 3:
                 return date(int(parts[2]), months[parts[1].lower()], int(parts[0]))
 
-    def write_albums(self, artist: str, titles: list[str], albums_path: str):
+    def write_albums(self, artist: str, titles: list[str], albums_path: str) -> None:
         """
         Записывает альбомы в JSON файл
 
         Args:
             artist (str): никнейм исполнителя
             titles list[str]: список названий альбомов
-            album_path (str): путь к папке, в которой будет храниться
-            JSON файл
+            album_path (str): путь к папке, в которой будет храниться JSON файл
 
         Returns:
             None
@@ -608,7 +603,7 @@ class MusicParser:
         """
         return re.sub(r'[\\/*?:"<>|]', '', filename)
 
-    def parse_albums(self, artist: str, page: int = 1):
+    def parse_albums(self, artist: str, page: int = 1) -> None:
         """
         Функция, которая отвечает за все стадии обработки
         данных об альбомах исполнителя
@@ -641,7 +636,7 @@ class MusicParser:
             self.write_albums(artist, titles, albums_path)
             self.save_covers(artist, page)
 
-    def save_covers(self, artist: str, page: int):
+    def save_covers(self, artist: str, page: int) -> None:
         """
         Сохраняет обложки альбомов в папке
 
@@ -679,7 +674,6 @@ class MusicParser:
             artist (str): никнейм пользователя
             page (int): номер страницы
 
-
         Returns:
             None
         """
@@ -697,13 +691,29 @@ class MusicParser:
             json.dump(instances, file)
         print(f'Albums of "{artist}" from page="{page}" was saved into {path}')
 
+    def write_album_songs(self, artist: str, title: str) -> None:
+        folder = f'jsons/songs/{artist}'
+        os.makedirs(folder, exist_ok=True)
+        filename = f'{self.sanitize_filename(title)}.json'
+        path = os.path.join(folder, filename)
+        data = self.get_album_songs(artist, title)
+        with open(path, 'w', encoding='utf-8') as file:
+            json.dump(data, file)
+            print(
+                f'Songs from "{title}" of "{artist}" were written into "{filename}"')
+
 
 def main():
     """
     Главная функция
     """
     parser = MusicParser()
-    parser.parse_albums('Dire Straits', 1)
+    artist = '21 Savage'
+    page = 1
+    parser.parse_albums()
+    titles = parser.get_artist_albums(artist, page)
+    for title in titles:
+        parser.write_album_songs(artist, title)
 
 
 if __name__ == '__main__':
