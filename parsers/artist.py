@@ -4,10 +4,10 @@ from bs4 import BeautifulSoup
 
 import urls
 from config import SELECTORS, MAX_GENRES, GENRE_PATTERN, HEADERS
-from base import BaseParser
+from parsers.base import BaseParser
 
 
-class ArtistsParser(BaseParser):
+class ArtistParser(BaseParser):
     def get_paginated_artists_by_genre(self, genre: str, page: int) -> list[str]:
         url = urls.genre_artists_url(genre, page)
         soup = self.get_soup(url)
