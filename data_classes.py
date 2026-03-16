@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import NamedTuple
 import datetime
 
@@ -21,6 +22,28 @@ class Artist(NamedTuple):
         }
 
 
+class ArtistURL(NamedTuple):
+    username: str
+    url: str
+
+    def to_dict(self):
+        return {
+            'username': self.username,
+            'url': self.url
+        }
+
+
+class AlbumURL(NamedTuple):
+    title: str
+    url: str
+
+    def to_dict(self):
+        return {
+            'title': self.title,
+            'url': self.url
+        }
+
+
 class Album(NamedTuple):
     """
     Класс сущности <<Альбом>>
@@ -33,7 +56,7 @@ class Album(NamedTuple):
         return {
             'name': self.name,
             'publication_date': self.publication_date.isoformat(),
-            'cover': self.cover_path
+            'cover': self.cover_path,
         }
 
 
@@ -63,11 +86,3 @@ class Genre(NamedTuple):
             'name': self.name,
             'description': self.description
         }
-
-
-if __name__ == '__main__':
-    song = Song(
-        name='blabla',
-        duration=datetime.time(0, 1, 1)
-    )
-    print(song)
