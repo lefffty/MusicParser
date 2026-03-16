@@ -1,24 +1,26 @@
 from dotenv import load_dotenv
-from psycopg2 import connect
 from psycopg2 import (
+    connect,
     OperationalError,
+    IntegrityError,
+    DataError,
 )
-import json
-import time
 import os
 
+from db_config import DatabaseConfig, QueryType
 
 load_dotenv()
 
 
 class DatabaseManager:
-    def __init__(self):
+    def __init__(self, db_config: DatabaseConfig):
         self.user = os.getenv('DB_USER')
         self.name = os.getenv('DB_NAME')
         self.password = os.getenv('DB_PASSWORD')
         self.port = os.getenv('DB_PORT')
         self.host = os.getenv('DB_HOST')
         self.schema_name = os.getenv('SCHEMA_NAME')
+        self.db_config = db_config
 
     def __enter__(self):
         try:
@@ -35,66 +37,43 @@ class DatabaseManager:
             print(f'Ошибка подключения или неверный пароль/логин: {e}')
             raise
 
-    def get_albums(self):
-        albums_query = f'SELECT * FROM {self.schema_name}.albums_album;'
-        with self.connection.cursor() as cursor:
-            cursor.execute(albums_query)
-            albums = cursor.fetchall()
-        return albums
-
-    def get_artists(self):
-        artists_query = f'SELECT * FROM {self.schema_name}.artist_artist;'
-        with self.connection.cursor() as cursor:
-            cursor.execute(artists_query)
-            artists = cursor.fetchall()
-        return artists
-
-    def get_genres(self):
-        genres_query = f'SELECT * FROM {self.schema_name}.genre_genre;'
-        with self.connection.cursor() as cursor:
-            cursor.execute(genres_query)
-            genres = cursor.fetchall()
-        return genres
-
-    def get_songs(self):
-        songs_query = f'SELECT * FROM {self.schema_name}.song_song;'
-        with self.connection.cursor() as cursor:
-            cursor.execute(songs_query)
-            songs = cursor.fetchall()
-        return songs
-
-    def insert_artist(self, username: str, description: str, avatar: str):
-        media_folder = os.getenv('RELATIVE_MEDIA_FOLDER')
-        avatar = os.path.join(media_folder, avatar)
-        if description != 'No description needed.':
-            description = description[:description.find('.') + 1]
-        artist_query = '''
-            INSERT INTO public.artist_artist(username, description, avatar)
-	        VALUES (%s, %s, %s);
-        '''
+    def get_many(self, relation) -> list[str]:
+        query = self.db_config.get_query(relation, QueryType.selectMany)
         with self.connection.cursor() as cursor:
             cursor.execute(
-                artist_query, (username, description, avatar))
-            self.connection.commit()
-        print(
-            f'"Artist" with params ({username},{description},{avatar})')
-        time.sleep(0.75)
+                query,
+            )
+            objects = cursor.fetchall()
+        return objects
+
+    def get_object_id(self, relation: str, params: tuple):
+        query = self.db_config.get_query(relation, QueryType.selectOne)
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                query,
+                params
+            )
+            id, *_ = cursor.fetchone()
+        return id
+
+    def insert_object(self, relation: str, params: dict):
+        query = self.db_config.get_query(relation, QueryType.insertOne)
+        with self.connection.cursor() as cursor:
+            try:
+                cursor.execute(
+                    query,
+                    params
+                )
+                self.connection.commit()
+                print('{} with params {} was inserted'.format(
+                    relation.capitalize(), params))
+            except TypeError as err:
+                print('Error: {}'.format(err))
+            except IntegrityError as err:
+                print('Error: {}'.format(err))
+            except DataError as err:
+                print('Error: {}'.format(err))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.connection.close()
         print('Подключение разорвано!')
-
-
-def main():
-    genre = '80s'
-    print('Входим в контекстный менеджер!')
-    with DatabaseManager() as dr:
-        with open(f'jsons/artists/{genre}.json', 'r', encoding='utf-8') as file:
-            data: list[dict] = json.load(file)
-        for item in data:
-            dr.insert_artist(*item.values())
-    print('Вышли из контекстного менеджера!')
-
-
-if __name__ == '__main__':
-    main()

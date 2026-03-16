@@ -1,0 +1,25 @@
+scripts:
+  album:
+    insertOne: scripts/insert_album.sql
+    readMany: scripts/select_albums.sql
+    readOne: scripts/select_album_id.sql
+  artist:
+    insertOne: scripts/insert_artist.sql
+    readMany: scripts/select_artists.sql
+    readOne: scripts/select_artist_id.sql
+  genre:
+    insertOne: scripts/insert_genre.sql
+    readOne: scripts/select_genre_id.sql
+    readMany: scripts/select_genres.sql
+  song:
+    insertOne: scripts/insert_song.sql
+    readMany: scripts/select_songs.sql
+    readOne: scripts/select_song_id.sql
+  album_genre:
+    insertOne: scripts/insert_album_genre.sql
+  artist_genre:
+    insertOne: scripts/insert_artist_genre.sql
+  album_song:
+    insertOne: scripts/insert_album_song.sql
+  album_artist:
+    insertOne: scripts/insert_album_artist.sql
