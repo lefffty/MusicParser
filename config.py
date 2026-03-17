@@ -32,7 +32,7 @@ SELECTORS = {
     ),
     'LAST_FM_ARTIST_IMAGE_CLASS': (
         'a',
-        'image-list-item',
+        'js-link-block-cover-link link-block-cover-link',
     ),
     'IMG_TAG': (
         'img',
@@ -84,3 +84,4 @@ GENRES_DIR = 'genres'
 ARTIST_IMAGES = 'artist_images'
 GENRE_PATTERN = r'\d'
 MAX_GENRES = 5
+COMMON_FOLDER = 'jsons'

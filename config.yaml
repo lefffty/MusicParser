@@ -7,6 +7,7 @@ scripts:
     insertOne: scripts/insert_artist.sql
     readMany: scripts/select_artists.sql
     readOne: scripts/select_artist_id.sql
+    updateOne: scripts/update_artist_avatar.sql
   genre:
     insertOne: scripts/insert_genre.sql
     readOne: scripts/select_genre_id.sql
@@ -15,6 +16,8 @@ scripts:
     insertOne: scripts/insert_song.sql
     readMany: scripts/select_songs.sql
     readOne: scripts/select_song_id.sql
+  related_artists:
+    insertOne: scripts/insert_related_artists.sql
   album_genre:
     insertOne: scripts/insert_album_genre.sql
   artist_genre:
