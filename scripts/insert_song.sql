@@ -1,2 +1,3 @@
 INSERT INTO public.song_song(name, duration)
-VALUES (%(name)s, %(duration)s);
+VALUES (%(name)s, %(duration)s)
+RETURNING id;
