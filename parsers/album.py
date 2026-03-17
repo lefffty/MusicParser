@@ -15,27 +15,27 @@ class AlbumParser(BaseParser):
         album_items = soup.find_all(
             SELECTORS['ALBUM_CLASS'][0],
             SELECTORS['ALBUM_CLASS'][1]
-        )[4:]
+        )
         album_names = [item.contents[1].text for item in album_items]
         return album_names
 
-    def get_album_cover_url(self, artist: str, title: str) -> str:
-        url = urls.album_page_url(artist, title)
+    def get_album_cover_url(self, artist: str, album: str) -> list[dict]:
+        url = urls.album_page_url(artist, album)
         soup = self.get_soup(url)
-        img_tag = 'https://www.last.fm' + \
-            soup.find_all(
-                SELECTORS['LAST_FM_ARTIST_IMAGE_CLASS'][0],
-                SELECTORS['LAST_FM_ARTIST_IMAGE_CLASS'][1]
-            )[0].attrs['href']
+        items = soup.find_all(
+            SELECTORS['LAST_FM_ARTIST_IMAGE_CLASS'][0],
+            SELECTORS['LAST_FM_ARTIST_IMAGE_CLASS'][1]
+        )
+        img_tag = 'https://www.last.fm' + items[0].attrs['href']
         soup = self.get_soup(img_tag)
-        full_img = soup.find(
+        full_imgs = soup.find_all(
             SELECTORS['IMG_TAG'][0],
             SELECTORS['IMG_TAG'][1]
         )
-        return full_img['src']
+        return full_imgs
 
-    def get_album_publication_date(self, artist: str, album_title: str) -> date:
-        url = urls.album_page_url(artist, album_title)
+    def get_album_publication_date(self, artist: str, album: str) -> date:
+        url = urls.album_page_url(artist, album)
         soup = self.get_soup(url)
         raw_publication_date = soup.find_all(
             SELECTORS['ALBUM_PUBLICATION_DATE_CLASS'][0],
@@ -43,12 +43,15 @@ class AlbumParser(BaseParser):
         )
         if len(raw_publication_date) == 2:
             return date(2000, 1, 1)
-        publication_date = parse_publication_date(
-            raw_publication_date[1].text.strip())
+        try:
+            publication_date = parse_publication_date(
+                raw_publication_date[1].text.strip())
+        except IndexError:
+            publication_date = None
         return publication_date
 
-    def get_album_songs(self, artist: str, title: str) -> list[Song]:
-        url = urls.album_page_url(artist, title)
+    def get_album_songs(self, artist: str, album: str) -> list[dict]:
+        url = urls.album_page_url(artist, album)
         soup = self.get_soup(url)
         raw_tracks = soup.find_all(
             SELECTORS['TRACK_CLASS'][0],
@@ -63,8 +66,8 @@ class AlbumParser(BaseParser):
         return [Song(name, parse_duration_to_time(duration)).to_dict()
                 for name, duration in zip(tracks, durations)]
 
-    def get_album_genres(self, artist: str, title: str):
-        url = urls.album_tags_url(artist, title)
+    def get_album_genres(self, artist: str, album: str):
+        url = urls.album_tags_url(artist, album)
         soup = self.get_soup(url)
         items = soup.find_all(
             SELECTORS['ALBUM_GENRE_CLASS'][0],
