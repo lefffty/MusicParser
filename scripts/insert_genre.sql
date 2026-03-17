@@ -1,2 +1,3 @@
 INSERT INTO public.genre_genre(name, description)
-VALUES (%(name)s, %(description)s);
+VALUES (%(name)s, %(description)s)
+RETURNING id;
