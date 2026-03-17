@@ -1,1 +1,1 @@
-SELECT * FROM public.artist_artist;
+SELECT * FROM public.artist_artist ORDER BY id;
