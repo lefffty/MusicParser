@@ -25,6 +25,16 @@ class MusicParserCoordinator:
         self.artist_avatars_folder: str | None = os.getenv(
             'ARTIST_AVATARS_FOLDER')
 
+    def parse_artist_data(self, artist: str):
+        desc = self.artist_parser.get_artist_description(artist)
+        img_url = self.artist_parser.get_artist_image_url(artist)
+        img_path = os.path.join(
+            self.artist_avatars_folder, f"{artist}.jpg")
+        download_image(img_url, img_path)
+        artist_dto = Artist(
+            artist, f"artist_avatars/{artist}.jpg", desc).to_dict()
+        return artist_dto
+
     def parse_artists_by_genre_page(self, genre: str, page: int):
         artists = self.artist_parser.get_artists_by_genre_page(genre, page)
         artist_ids: list[int] = []
@@ -33,13 +43,7 @@ class MusicParserCoordinator:
             artist_id = self.select_artist_id(artist)
 
             if artist_id is None:
-                desc = self.artist_parser.get_artist_description(artist)
-                img_url = self.artist_parser.get_artist_image_url(artist)
-                img_path = os.path.join(
-                    self.artist_avatars_folder, f"{artist}.jpg")
-                download_image(img_url, img_path)
-                artist_dto = Artist(
-                    artist, f"artist_avatars/{artist}.jpg", desc).to_dict()
+                artist_dto = self.parse_artist_data(artist)
                 artist_id = self.insert_artist(artist_dto)
             else:
                 print('Skipping "artist" - "{}"'.format(artist))
@@ -73,13 +77,7 @@ class MusicParserCoordinator:
         artist_id = self.select_artist_id(artist)
 
         if artist_id is None:
-            img_url = self.artist_parser.get_artist_image_url(artist)
-            img_path = os.path.join(
-                self.artist_avatars_folder, f"{artist}.jpg")
-            desc = self.artist_parser.get_artist_description(artist)
-            download_image(img_url, img_path)
-            artist_dto = Artist(
-                artist, f"artist_avatars/{artist}.jpg", desc).to_dict()
+            artist_dto = self.parse_artist_data(artist)
             artist_id = self.insert_artist(artist_dto)
 
         similar_artists = self.artist_parser.get_similar_artists(artist)
@@ -89,18 +87,10 @@ class MusicParserCoordinator:
 
             if similar_artist_id is None:
                 try:
-                    similar_desc = self.artist_parser.get_artist_description(
-                        similar_artist)
-                    similar_img_url = self.artist_parser.get_artist_image_url(
-                        similar_artist)
-                    similar_img_path = os.path.join(
-                        self.artist_avatars_folder, f"{artist}.jpg")
-                    download_image(similar_img_url, similar_img_path)
-                    similar_artist_dto = Artist(
-                        similar_artist, f"artist_avatars/{artist}.jpg", similar_desc).to_dict()
+                    similar_artist_dto = self.parse_artist_data(similar_artist)
                     similar_artist_id = self.insert_artist(similar_artist_dto)
                 except requests.exceptions.HTTPError:
-                    print('Skipped {} due to HTTPError'.format(similar_artist))
+                    print('Skipped "{}" due to HTTPError'.format(similar_artist))
                     continue
 
             self.insert_related_artist(artist_id, similar_artist_id)
@@ -135,17 +125,18 @@ class MusicParserCoordinator:
             if new_album != album:
                 print(album, new_album)
                 continue
-            pub_date = self.album_parser.get_album_publication_date(
-                artist, new_album)
-            temp = None
-            while not temp:
-                temp = self.album_parser.get_album_cover_url(artist, new_album)
-            cover_url = temp[0]['src']
-            cover_path = f"{new_album}.jpg"
 
             album_id = self.select_album_id(album)
 
             if album_id is None:
+                pub_date = self.album_parser.get_album_publication_date(
+                    artist, new_album)
+                temp = None
+                while not temp:
+                    temp = self.album_parser.get_album_cover_url(
+                        artist, new_album)
+                cover_url = temp[0]['src']
+                cover_path = f"{new_album}.jpg"
                 album_dto = Album(new_album, pub_date,
                                   f"album_covers/{album}.jpg").to_dict()
                 album_id = self.insert_album(album_dto)

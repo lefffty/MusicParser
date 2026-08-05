@@ -4,7 +4,7 @@ import keyboard
 from parsers.genre import GenreParser
 from parsers.artist import ArtistParser
 from db.config import DatabaseConfig
-from main_parser import MusicParserCoordinator
+from parsers.parser import MusicParserCoordinator
 
 
 db_config = DatabaseConfig('config.yaml')
@@ -63,7 +63,7 @@ def get_chosen_genre_page(min_page: int, max_page: int, genre: str):
                 artist = artists[index]
                 parser.parse_artist(artist)
             elif event.name == 'q':
-                return
+                return None
 
 
 def get_artists(genre: str, page: int):
@@ -100,7 +100,6 @@ def main():
                 clear_last_lines(1)
                 genre = genres[index]
                 page = display_genre_interface(genre_parser, genre)
-                display_artists(artist_parser, genre, page, 2)
         case 2:
             clear_last_lines(1)
             sys.exit(0)
